@@ -4,14 +4,13 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 import time
+import os
+
 
 # В данном классе переопределён метод
 # on_modified, который будет применяться при
 # модификации файлов
 class FolderLoggerHandler(FileSystemEventHandler):
-    def on_any_event(self, event):
-        print(event.event_type, event.src_path)
-
     def on_created(self, event):
         print("on_created", event.src_path)
 
@@ -19,12 +18,45 @@ class FolderLoggerHandler(FileSystemEventHandler):
         print("on_deleted", event.src_path)
 
     def on_modified(self, event):
+        src_path_target_file = event.src_path
+
         print("on_modified", event.src_path)
 
     def on_moved(self, event):
         print("on_moved", event.src_path)
 
+def get_text_on_file(absolute_path_on_file):
+    with open(absolute_path_on_file, 'r') as f:
+        return f.read()
 
+# Получает имя файла из абсолютного пути к файлу
+def get_file_name_for_absolute_path(absolute_path):
+    absolute_path_split = absolute_path.split('/')
+    return absolute_path_split[-1:][0]
+
+# Возвращает список имён файлов директории (без рекурсии)
+def get_name_files_in_folder(path):
+    res = []
+    for root, dirs, files in os.walk(path):  
+        for filename in files:
+            res.append(str(filename))
+    
+    return res
+
+# Функция копирует все файлы указанной дериктории
+# в папку cache_folder для дальнейшего выявления
+# изменений в файлах
+def create_cache_files(path_on_target_folder):
+    file_names = get_name_files_in_folder(path_on_target_folder)
+
+    for file_name in file_names:
+        src_on_test_folder = './cache_folder'
+
+        with open(path_on_target_folder +  '/' + file_name, 'r') as f:
+            data_target_file = f.read()
+
+        with open(src_on_test_folder +  '/' + file_name, 'w') as f:
+            f.write(data_target_file)
 
 # Функция принимает 2 аргумента типа str
 # Возврашает list с разницей в формате ['+ изменённая строка', ...]
@@ -59,6 +91,8 @@ def get_change_on_text(text1='default', text2='default'):
         # Вывод разницы между строками (Фиксируется только добавление/изменение строк)
         return change_list[1:]
     
+# функция-менеджер которая собирает все созданные функции
+# конфигурирует их и запускает
 def _main():
     event_handler = FolderLoggerHandler()
     observer = Observer()
@@ -73,4 +107,4 @@ def _main():
     observer.join()
 
 if __name__ == '__main__':
-    _main()
+    print(get_text_on_file('/home/denis/Рабочий стол/1/test_folder/dawda.txt'))
