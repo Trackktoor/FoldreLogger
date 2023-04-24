@@ -10,6 +10,9 @@ import os
 # В данном классе переопределён метод
 # on_modified, который будет применяться при
 # модификации файлов
+def get_valid_changed_string(changed_string):
+    return changed_string[3:]
+
 class FolderLoggerHandler(FileSystemEventHandler):
     def on_created(self, event):
         print("on_created", event.src_path)
@@ -18,14 +21,23 @@ class FolderLoggerHandler(FileSystemEventHandler):
         print("on_deleted", event.src_path)
 
     def on_modified(self, event):
-        src_path_target_file = event.src_path
+        print(type(event))
+        if event.src_path.endswith('.txt'):
+            target_file_name = get_file_name_for_absolute_path(event.src_path)
+            text_on_changed_file = get_text_on_file(event.src_path)
+            text_on_cache_file = get_text_on_file('./cache_folder/' + target_file_name)
 
-        print("on_modified", event.src_path)
+            list_changes = list(map(get_valid_changed_string,get_change_on_text(text_on_cache_file,text_on_changed_file)))
+
+            print("on_modified: ", list_changes)
+        else:
+            pass
 
     def on_moved(self, event):
         print("on_moved", event.src_path)
 
 def get_text_on_file(absolute_path_on_file):
+
     with open(absolute_path_on_file, 'r') as f:
         return f.read()
 
@@ -59,7 +71,7 @@ def create_cache_files(path_on_target_folder):
             f.write(data_target_file)
 
 # Функция принимает 2 аргумента типа str
-# Возврашает list с разницей в формате ['+ изменённая строка', ...]
+# Возврашает list с разницей в формате ['\n+изменённая строка', ...]
 def get_change_on_text(text1='default', text2='default'):
     # Проверки аргументов
     if text1 == 'default' or text2 == 'default':
@@ -67,12 +79,10 @@ def get_change_on_text(text1='default', text2='default'):
         if type(text1) is not str or type(text2) is not str:
             print('ERROR: один или несколько параметров не являются строками')
     else:
-        # Строки для примера
-        #
         # Применяем splitlines для удобочиатемости при выводе
         # иначе вывод будет по одной букве.
-        text1 = 'FILE:\n 1\n 2\n 3'.splitlines()
-        text2 = 'FILE:\n 11231\n 22\n 3\n 4422'.splitlines()
+        text1 = text1.splitlines()
+        text2 = text2.splitlines()
 
         # Инициализируем экземпляр объекта для операция
         d = df.Differ()
@@ -86,7 +96,7 @@ def get_change_on_text(text1='default', text2='default'):
         diff_string = '\n'.join(diff)
 
         # С помощью регулярных выражений собираем все нужные нам строки
-        change_list = re.findall(r'[?+] \S*', diff_string)
+        change_list = re.findall(r'\n[?+].*', diff_string)
 
         # Вывод разницы между строками (Фиксируется только добавление/изменение строк)
         return change_list[1:]
@@ -94,9 +104,11 @@ def get_change_on_text(text1='default', text2='default'):
 # функция-менеджер которая собирает все созданные функции
 # конфигурирует их и запускает
 def _main():
+    create_cache_files('/home/denis/Рабочий стол/1/test_folder')
+
     event_handler = FolderLoggerHandler()
     observer = Observer()
-    observer.schedule(event_handler, path='/home/denis/Рабочий стол/1/test_folder', recursive=False)
+    observer.schedule(event_handler, path='/home/denis/Рабочий стол/1/test_folder/', recursive=False)
     observer.start()
 
     try:
@@ -107,4 +119,4 @@ def _main():
     observer.join()
 
 if __name__ == '__main__':
-    print(get_text_on_file('/home/denis/Рабочий стол/1/test_folder/dawda.txt'))
+    _main()
