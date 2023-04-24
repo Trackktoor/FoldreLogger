@@ -1,5 +1,30 @@
 import difflib as df
 import re
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+import time
+
+# В данном классе переопределён метод
+# on_modified, который будет применяться при
+# модификации файлов
+class FolderLoggerHandler(FileSystemEventHandler):
+    def on_any_event(self, event):
+        print(event.event_type, event.src_path)
+
+    def on_created(self, event):
+        print("on_created", event.src_path)
+
+    def on_deleted(self, event):
+        print("on_deleted", event.src_path)
+
+    def on_modified(self, event):
+        print("on_modified", event.src_path)
+
+    def on_moved(self, event):
+        print("on_moved", event.src_path)
+
+
 
 # Функция принимает 2 аргумента типа str
 # Возврашает list с разницей в формате ['+ изменённая строка', ...]
@@ -33,3 +58,19 @@ def get_change_on_text(text1='default', text2='default'):
 
         # Вывод разницы между строками (Фиксируется только добавление/изменение строк)
         return change_list[1:]
+    
+def _main():
+    event_handler = FolderLoggerHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path='/home/denis/Рабочий стол/1/test_folder', recursive=False)
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+if __name__ == '__main__':
+    _main()
