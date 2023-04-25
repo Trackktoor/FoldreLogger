@@ -7,12 +7,14 @@ import time
 import os
 
 
+
+
+def get_valid_changed_string(changed_string):
+    return changed_string[2:]
+
 # В данном классе переопределён метод
 # on_modified, который будет применяться при
 # модификации файлов
-def get_valid_changed_string(changed_string):
-    return changed_string[3:]
-
 class FolderLoggerHandler(FileSystemEventHandler):
     def on_created(self, event):
         print("on_created", event.src_path)
@@ -21,15 +23,21 @@ class FolderLoggerHandler(FileSystemEventHandler):
         print("on_deleted", event.src_path)
 
     def on_modified(self, event):
-        print(type(event))
         if event.src_path.endswith('.txt'):
             target_file_name = get_file_name_for_absolute_path(event.src_path)
             text_on_changed_file = get_text_on_file(event.src_path)
             text_on_cache_file = get_text_on_file('./cache_folder/' + target_file_name)
 
             list_changes = list(map(get_valid_changed_string,get_change_on_text(text_on_cache_file,text_on_changed_file)))
+            if len(list_changes) != 0:
+                print("on_modified: ", list_changes)
 
-            print("on_modified: ", list_changes)
+                update_cache_file('./cache_folder/' + target_file_name, text_on_changed_file)
+
+                print('CACHE FILE UPDATE')
+            else:
+                pass
+
         else:
             pass
 
@@ -40,6 +48,10 @@ def get_text_on_file(absolute_path_on_file):
 
     with open(absolute_path_on_file, 'r') as f:
         return f.read()
+
+def update_cache_file(absolute_path_on_file, new_text):
+    with open(absolute_path_on_file, 'w') as f:
+        f.write(new_text)
 
 # Получает имя файла из абсолютного пути к файлу
 def get_file_name_for_absolute_path(absolute_path):
