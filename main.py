@@ -2,13 +2,14 @@ import difflib as df
 import re
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
+import yaml
+from yaml.loader import SafeLoader
 import time
 import os
 
-
-
-
+# Вовзаращает валидную строку изменений
+# Принимает строку изменения аргументом из функции 
+# get_change_on_text
 def get_valid_changed_string(changed_string):
     return changed_string[2:]
 
@@ -25,6 +26,7 @@ class FolderLoggerHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith('.txt'):
             target_file_name = get_file_name_for_absolute_path(event.src_path)
+
             text_on_changed_file = get_text_on_file(event.src_path)
             text_on_cache_file = get_text_on_file('./cache_folder/' + target_file_name)
 
@@ -49,6 +51,8 @@ def get_text_on_file(absolute_path_on_file):
     with open(absolute_path_on_file, 'r') as f:
         return f.read()
 
+# Обновление кеш-файла обноволённого файла
+# Принимает абсолюный путь и новый текст для кеш-файла
 def update_cache_file(absolute_path_on_file, new_text):
     with open(absolute_path_on_file, 'w') as f:
         f.write(new_text)
@@ -113,22 +117,31 @@ def get_change_on_text(text1='default', text2='default'):
         # Вывод разницы между строками (Фиксируется только добавление/изменение строк)
         return change_list[1:]
     
+def get_config_info():
+    with open('config.yml') as f:
+        data = yaml.load(f, Loader=SafeLoader)
+        print(data)
+
 # функция-менеджер которая собирает все созданные функции
 # конфигурирует их и запускает
 def _main():
+    # Создаём кеш-файлы для будующего сравнения
     create_cache_files('/home/denis/Рабочий стол/1/test_folder')
 
     event_handler = FolderLoggerHandler()
     observer = Observer()
+    # Конфигурируем наш наблюдатель
     observer.schedule(event_handler, path='/home/denis/Рабочий стол/1/test_folder/', recursive=False)
+    # Создаем новый поток в котором будет бесконечно наблюдаться изменения за файлами
     observer.start()
 
     try:
         while True:
             time.sleep(0.1)
     except KeyboardInterrupt:
+        # В слуачае ручной отмены закрываем поток
         observer.stop()
     observer.join()
 
 if __name__ == '__main__':
-    _main()
+    get_config_info()

@@ -1,0 +1,10 @@
+---
+  UserName: Alicia
+  Password: pinga123* 
+  phone: (495) 555-32-56
+  room: 10
+  TablesList:
+        - EmployeeTable
+        - SoftwaresList
+        - HardwareList 
+---
