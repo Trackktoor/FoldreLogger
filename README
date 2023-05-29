@@ -1,0 +1,26 @@
+# Изначальный формат выходно JSON файла должен быть таким:
+---JSON
+{
+    "data":[]
+}
+
+# Пример выходного файла уже с логами:
+---JSON
+{
+    "data":[
+        {
+        "message": "Hello, User and Process ID",
+        "process": 15705,
+        "timestamp": "2023-05-29 19:13:23.624183",
+        "user": "denis"
+        }
+    ]
+}
+
+# Файл конфигурации обязаельно должен иметь такой формат:
+# и находится рядом с файлом main.py
+---YML
+---
+  DirLogFile: {absolute_path}
+  dirOutputFile: {absolute_path}
+...
