@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 cache_folder/
+source-file-name.json
 
 # C extensions
 *.so

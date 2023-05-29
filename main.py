@@ -5,18 +5,25 @@ from watchdog.events import FileSystemEventHandler
 import yaml
 from yaml.loader import SafeLoader
 import time
+from datetime import datetime
 import os
+import json
+import os
+import pwd
+
 
 # Вовзаращает валидную строку изменений
 # Принимает строку изменения аргументом из функции 
 # get_change_on_text
 def get_valid_changed_string(changed_string):
-    return changed_string[2:]
+    return changed_string[2:].strip()
 
 # В данном классе переопределён метод
 # on_modified, который будет применяться при
 # модификации файлов
 class FolderLoggerHandler(FileSystemEventHandler):
+    dirOutputFile = 'DEFAULT'
+
     def on_created(self, event):
         print("on_created", event.src_path)
 
@@ -37,15 +44,43 @@ class FolderLoggerHandler(FileSystemEventHandler):
                 update_cache_file('./cache_folder/' + target_file_name, text_on_changed_file)
 
                 print('CACHE FILE UPDATE')
+                # Получаем информацию о файле
+                st = os.stat(event.src_path)
+                # Получаем ID процесса
+                pid = os.getpid()
+                # Получаем имя пользователя, который владеет файлом
+                user = pwd.getpwuid(st.st_uid).pw_name
+
+                change_log_file(list_changes, self.dirOutputFile, pid, user)
             else:
                 pass
-
+        
         else:
             pass
 
     def on_moved(self, event):
         print("on_moved", event.src_path)
 
+
+# Добавляет информацию в лог-файл
+# в change_list нужно передавать массив со строками изменений
+# Не словарь (Который объект в JS)
+def change_log_file(change_list, dirOutputFile, pid, user):
+    # Читаем наш файл логов
+    with open(dirOutputFile + 'source-file-name.json', 'r') as f:
+        info = json.load(f)
+
+    # Записываем новые значение в переменную с прочитанным файлом
+    for i in  change_list:
+        date_now = datetime.now()
+        info['data'].append({"message":i, "timestamp":str(date_now),"process":pid,"user":user})
+    
+    # Перезаписываем файл 
+    with open(dirOutputFile + 'source-file-name.json', 'w') as f:
+
+        json.dump(info, f, sort_keys=True, indent=2)
+
+# Получаем текст из файла
 def get_text_on_file(absolute_path_on_file):
 
     with open(absolute_path_on_file, 'r') as f:
@@ -116,25 +151,36 @@ def get_change_on_text(text1='default', text2='default'):
 
         # Вывод разницы между строками (Фиксируется только добавление/изменение строк)
         return change_list[1:]
-    
+
+# Функция для получения аргументво из файла config.yml
+# Файл должен располгаться вместе с main.py в одной дериктории!!
 def get_config_info():
     with open('config.yml') as f:
         data = yaml.load(f, Loader=SafeLoader)
-        print(data)
+        dirLogFile = data['DirLogFile']
+        dirOutputFile = data['dirOutputFile']
+        return {'dirLogFile':dirLogFile, 'dirOutputFile':dirOutputFile}
 
 # функция-менеджер которая собирает все созданные функции
 # конфигурирует их и запускает
-def _main():
+def _main(dirLogFile,dirOutputFile):
     # Создаём кеш-файлы для будующего сравнения
-    create_cache_files('/home/denis/Рабочий стол/1/test_folder')
-
+    create_cache_files(dirLogFile)
+    
+    # Инициализируем хендлер для обработки событий налюдения
     event_handler = FolderLoggerHandler()
+
+    # Передаём расположение выходного JSON файла
+    FolderLoggerHandler.dirOutputFile = dirOutputFile
+
+    # Инициализируем наблюдателя
     observer = Observer()
     # Конфигурируем наш наблюдатель
-    observer.schedule(event_handler, path='/home/denis/Рабочий стол/1/test_folder/', recursive=False)
+    observer.schedule(event_handler, path=dirLogFile, recursive=False)
     # Создаем новый поток в котором будет бесконечно наблюдаться изменения за файлами
     observer.start()
 
+    # Бесконечный цикл для возможности закрытия потока с наблюдением
     try:
         while True:
             time.sleep(0.1)
@@ -144,4 +190,8 @@ def _main():
     observer.join()
 
 if __name__ == '__main__':
-    get_config_info()
+    # Получаем конфигурацию
+    arr_info = get_config_info()
+
+    # Запуск наблюдения
+    _main(arr_info['dirLogFile'],arr_info['dirOutputFile'])

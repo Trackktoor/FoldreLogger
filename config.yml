@@ -1,10 +1,4 @@
 ---
-  UserName: Alicia
-  Password: pinga123* 
-  phone: (495) 555-32-56
-  room: 10
-  TablesList:
-        - EmployeeTable
-        - SoftwaresList
-        - HardwareList 
----
+  DirLogFile: /home/denis/Рабочий стол/test_case/1/test_folder/
+  dirOutputFile: /home/denis/Рабочий стол/test_case/1/FoldreLogger/
+...
